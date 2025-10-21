@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # Frontend: React + Vite + TypeScript
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: context2task-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    command: npm run dev -- --host 0.0.0.0
+    networks:
+      - context2task-network
+
+  # Backend: FastAPI + Python
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: context2task-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ~/.cache/pypoetry:/root/.cache/pypoetry  # Poetry cache
+    environment:
+      # OpenRouter API
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - DEFAULT_MODEL=google/gemini-2.5-pro
+      
+      # OpenAI (for MCP embeddings)
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      
+      # Zilliz Cloud (MCP backend)
+      - ZILLIZ_CLOUD_URI=${ZILLIZ_CLOUD_URI}
+      - ZILLIZ_CLOUD_API_KEY=${ZILLIZ_CLOUD_API_KEY}
+      
+      # Application
+      - ENVIRONMENT=development
+      - LOG_LEVEL=INFO
+      - CORS_ORIGINS=http://localhost:5173
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      - frontend
+    networks:
+      - context2task-network
+
+networks:
+  context2task-network:
+    driver: bridge
+
+# Volume for node_modules persistence
+volumes:
+  node_modules:
+
+
