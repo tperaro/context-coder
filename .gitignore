@@ -311,3 +311,6 @@ secrets/
 .cache/
 .tmp/
 .temp/
+# Temporary/backup files
+*.backup
+RESTRUCTURE_COMPLETE.md
