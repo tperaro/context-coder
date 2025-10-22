@@ -9,10 +9,12 @@ from typing import List, Dict
 from ..state import AgentState, StateUpdate
 from services.llm import get_llm_service
 from services.mcp import get_mcp_service
+from services.langsmith import traceable
 
 logger = logging.getLogger(__name__)
 
 
+@traceable(name="analyze_feature", run_type="chain", tags=["agent", "analysis"])
 async def analyze_feature_node(state: AgentState) -> StateUpdate:
     """
     Analyze user feature request and extract key information.
@@ -25,7 +27,10 @@ async def analyze_feature_node(state: AgentState) -> StateUpdate:
     if state["messages"]:
         last_msg = state["messages"][-1]
         # Handle both dict and LangChain message objects
-        last_message = last_msg.content if hasattr(last_msg, 'content') else last_msg.get("content", "")
+        if isinstance(last_msg, dict):
+            last_message = last_msg.get("content", "")
+        else:
+            last_message = last_msg.content if hasattr(last_msg, 'content') else ""
     else:
         last_message = ""
     
@@ -74,6 +79,7 @@ async def analyze_feature_node(state: AgentState) -> StateUpdate:
         }
 
 
+@traceable(name="search_codebase", run_type="retriever", tags=["agent", "mcp", "search"])
 async def search_codebase_node(state: AgentState) -> StateUpdate:
     """
     Search codebase using MCP for relevant context.
@@ -111,6 +117,7 @@ async def search_codebase_node(state: AgentState) -> StateUpdate:
     }
 
 
+@traceable(name="llm_response", run_type="llm", tags=["agent", "llm", "response"])
 async def llm_response_node(state: AgentState) -> StateUpdate:
     """
     Generate AI response using context and conversation history.
@@ -129,14 +136,15 @@ async def llm_response_node(state: AgentState) -> StateUpdate:
     # Convert messages to dict format for LLM
     messages_for_llm = []
     for msg in state["messages"]:
-        if hasattr(msg, 'type'):
+        if isinstance(msg, dict):
+            # Already a dict
+            messages_for_llm.append(msg)
+        elif hasattr(msg, 'type') and hasattr(msg, 'content'):
             # LangChain message object
             messages_for_llm.append({
                 "role": "user" if msg.type == "human" else "assistant",
                 "content": msg.content
             })
-        elif isinstance(msg, dict):
-            messages_for_llm.append(msg)
     
     try:
         # Generate response
@@ -170,6 +178,7 @@ async def llm_response_node(state: AgentState) -> StateUpdate:
         }
 
 
+@traceable(name="update_spec", run_type="chain", tags=["agent", "spec"])
 async def update_spec_node(state: AgentState) -> StateUpdate:
     """
     Update spec sections progressively based on conversation.

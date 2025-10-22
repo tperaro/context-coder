@@ -2,6 +2,7 @@
 Context2Task Backend - FastAPI Application
 AI-Powered Feature Specification Platform
 """
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -18,13 +19,35 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handle application startup and shutdown events."""
+    logger.info(
+        "application_startup service=%s version=%s",
+        "context2task-backend",
+        "1.0.0",
+    )
+    
+    # Log LangSmith configuration status
+    from services.langsmith import log_langsmith_status, is_langsmith_enabled
+    log_langsmith_status()
+    if is_langsmith_enabled():
+        logger.info("langsmith_tracing_enabled project=%s", 
+                   os.getenv("LANGCHAIN_PROJECT", "context-coder"))
+    
+    yield
+    logger.info("application_shutdown")
+
+
 # Create FastAPI app
 app = FastAPI(
     title="Context2Task API",
     description="AI-Powered Feature Specification Platform using LangGraph + Gemini 2.5 Pro",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    lifespan=lifespan
 )
 
 # Configure CORS

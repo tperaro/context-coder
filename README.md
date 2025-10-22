@@ -6,7 +6,8 @@ API backend para o Context-Coder - Plataforma AI-powered que transforma contexto
 
 - **FastAPI 0.116.1+** - Framework web moderno e async
 - **LangGraph 0.6.0** - Orquestração de agentes com checkpointing
-- **Gemini 2.5 Pro** - LLM via OpenRouter
+- **Gemini 2.5 Pro** - LLM via Google Direct API + OpenRouter fallback
+- **LangSmith** - Observabilidade e debugging de agentes (opcional)
 - **Model Context Protocol (MCP)** - Busca semântica no código usando `zilliztech/claude-context`
 - **Python 3.11+** - Linguagem base
 - **Poetry** - Gerenciamento de dependências
@@ -112,14 +113,18 @@ context-coder/
 Copie `backend/.env.example` para `backend/.env` e configure:
 
 ```bash
-# OpenRouter (LLM)
-OPENROUTER_API_KEY=sk-or-v1-your-key-here
-DEFAULT_MODEL=google/gemini-2.5-pro
+# Google Gemini (Primary LLM)
+GOOGLE_API_KEY=your-google-api-key-here
+GOOGLE_MODEL=gemini-1.5-flash
 
-# OpenAI (Embeddings)
+# OpenRouter (Fallback LLM)
+OPENROUTER_API_KEY=sk-or-v1-your-key-here
+OPENROUTER_MODEL=google/gemini-flash-1.5
+
+# OpenAI (Embeddings for MCP)
 OPENAI_API_KEY=sk-your-openai-key-here
 
-# Zilliz Cloud (Vector DB)
+# Zilliz Cloud (Vector DB for MCP)
 ZILLIZ_CLOUD_URI=https://your-instance.zilliz.cloud
 ZILLIZ_CLOUD_API_KEY=your-zilliz-key-here
 
@@ -128,16 +133,23 @@ ENVIRONMENT=development
 LOG_LEVEL=INFO
 CORS_ORIGINS=http://localhost:5173
 
-# GitHub (opcional)
+# LangSmith (Optional - Observability)
+LANGCHAIN_TRACING_V2=false
+LANGCHAIN_API_KEY=lsv2_pt_your-key-here
+LANGCHAIN_PROJECT=context-coder-dev
+
+# GitHub (Optional)
 GITHUB_TOKEN=
 GITHUB_ORG=your-org
 GITHUB_PROJECT_NUMBER=1
 ```
 
 **Onde conseguir as keys:**
+- Google Gemini: https://aistudio.google.com/apikey (FREE)
 - OpenRouter: https://openrouter.ai/keys
 - OpenAI: https://platform.openai.com/api-keys
-- Zilliz Cloud: https://cloud.zilliz.com/signup
+- Zilliz Cloud: https://cloud.zilliz.com/signup (FREE tier)
+- **LangSmith: https://smith.langchain.com/ (FREE - opcional)** 🆕
 
 ## 🔧 Comandos Úteis (Makefile)
 
@@ -181,6 +193,42 @@ A API está documentada interativamente em:
 - `GET /api/repositories` - Listar repositórios
 - `POST /api/export/markdown` - Exportar especificação
 - `POST /api/github/create-card` - Criar card no GitHub Projects
+
+## 📊 LangSmith - Observabilidade (Opcional)
+
+O backend está integrado com o **LangSmith** para rastreamento e debugging de agentes! 
+
+### Setup Rápido (5 minutos)
+
+1. Obtenha uma API key gratuita em [smith.langchain.com](https://smith.langchain.com/)
+2. Adicione ao seu `backend/.env`:
+   ```bash
+   LANGCHAIN_TRACING_V2=true
+   LANGCHAIN_API_KEY=lsv2_pt_sua_chave_aqui
+   LANGCHAIN_PROJECT=context-coder-dev
+   ```
+3. Reinicie o backend
+4. Acesse [smith.langchain.com](https://smith.langchain.com/) para ver traces em tempo real!
+
+### O que você ganha?
+
+- 🔍 **Rastreamento completo** de todas as execuções do agent
+- 🐛 **Debug visual** do fluxo de nodes (analyze → search → llm → update)
+- 📈 **Métricas** de performance, latência e custos
+- 🏷️ **Tags** para organizar traces: `agent`, `analysis`, `tech-debt`, etc
+- 🔗 **Visualização** de prompts, respostas e decisões da IA
+
+### Nodes rastreados
+
+Todos os nodes principais estão instrumentados:
+- ✅ `analyze_feature` - Análise inicial
+- ✅ `search_codebase` - Busca via MCP
+- ✅ `llm_response` - Geração de resposta
+- ✅ `tech_debt_analysis` - Análise de dívida técnica
+- ✅ `security_check` - Checklist de segurança
+- ✅ `generate_diagram` - Geração de diagramas
+
+📖 **Documentação completa**: [docs/LANGSMITH_INTEGRATION.md](./docs/LANGSMITH_INTEGRATION.md)
 
 ## 🎯 Frontend
 
@@ -227,6 +275,7 @@ CORS_ORIGINS=http://localhost:5173
 ## 📚 Documentação Adicional
 
 - [QUICKSTART.md](./docs/QUICKSTART.md) - Guia rápido completo
+- [LANGSMITH_INTEGRATION.md](./docs/LANGSMITH_INTEGRATION.md) - Observabilidade com LangSmith 🆕
 - [RUN_WITHOUT_DOCKER.md](./docs/RUN_WITHOUT_DOCKER.md) - Rodar sem Docker
 - [FRONTEND_MOVED.md](./docs/FRONTEND_MOVED.md) - Info sobre separação do frontend
 - [Especificações](./specs/) - Specs técnicas do projeto

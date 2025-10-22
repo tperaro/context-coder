@@ -7,10 +7,12 @@ import logging
 from ..state import AgentState, StateUpdate
 from services.llm import get_llm_service
 from services.mcp import get_mcp_service
+from services.langsmith import traceable
 
 logger = logging.getLogger(__name__)
 
 
+@traceable(name="detect_multi_spec", run_type="chain", tags=["agent", "analysis", "multi-spec"])
 async def detect_multi_spec_node(state: AgentState) -> StateUpdate:
     """
     Multi-Spec Detection Node (AI-powered)
@@ -81,6 +83,7 @@ Responda em JSON:
         }
 
 
+@traceable(name="tech_debt_analysis", run_type="chain", tags=["agent", "analysis", "tech-debt"])
 async def tech_debt_node(state: AgentState) -> StateUpdate:
     """
     Tech Debt Analysis Node (AI-powered)
@@ -171,6 +174,7 @@ Responda em JSON com format exato:
         }
 
 
+@traceable(name="security_check", run_type="chain", tags=["agent", "analysis", "security"])
 async def security_check_node(state: AgentState) -> StateUpdate:
     """
     Security Checklist Node (LGPD + OWASP)
@@ -239,6 +243,7 @@ Responda em JSON:
         }
 
 
+@traceable(name="generate_diagram", run_type="chain", tags=["agent", "diagram", "mermaid"])
 async def generate_diagram_node(state: AgentState) -> StateUpdate:
     """
     Mermaid Diagram Generation Node
